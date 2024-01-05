@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+message DhtMessage {
+  optional float temperature = 1;
+  optional float humidity = 2;
+  optional float estadoServo = 3;
+  optional float estadoTapa = 4;
+}
