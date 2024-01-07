@@ -1,8 +1,15 @@
 syntax = "proto2";
 
-message DhtMessage {
+message dhtMessage {
   optional float temperature = 1;
   optional float humidity = 2;
-  optional float estadoServo = 3;
-  optional float estadoTapa = 4;
+}
+
+message engineMessage {
+  optional int32 engine = 1;
+  optional int32 cover = 2;
+}
+
+message lightMessage {
+  optional int32 light = 1;
 }

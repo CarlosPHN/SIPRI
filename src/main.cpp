@@ -10,10 +10,12 @@
 #include "pb.h"
 #include "pb_encode.h"
 
-const char *ssid = "ssid";
-const char *password = "password";
+const char *ssid = "SSID";
+const char *password = "PASSWORD";
 
-#define TOPIC "esi/room1/temp"
+#define DHT_TOPIC "sipri/dht"
+#define ENGINE_TOPIC "sipri/dht"
+#define LIGHT_TOPIC "sipri/dht"
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
 
@@ -63,19 +65,19 @@ void mqttConnect()
 void sendDHT11(float currentTemperature, float currrentHumidity)
 {
   uint8_t buffer[200];
-  DhtMessage message = DhtMessage_init_zero;
+  dhtMessage message = dhtMessage_init_zero;
   pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
   message.temperature = currentTemperature;
   message.has_temperature = true;
   message.humidity = currrentHumidity;
   message.has_humidity = true;
-  bool status = pb_encode(&stream, DhtMessage_fields, &message);
+  bool status = pb_encode(&stream, dhtMessage_fields, &message);
   if (!status)
   {
     Serial.println("Failed to encode");
     return;
   }
-  client.publish(TOPIC, buffer, stream.bytes_written);
+  client.publish(DHT_TOPIC, buffer, stream.bytes_written);
 }
 
 void vTaskPeriodicDHT11(void *pvParam)
@@ -113,4 +115,20 @@ void setup()
 
 void loop()
 {
+  delay(3000);
+  uint8_t buffer[200];
+  engineMessage message = engineMessage_init_zero;
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  message.engine = 0;
+  message.has_engine = true;
+  message.cover = 1;
+  message.has_cover = true;
+  bool status = pb_encode(&stream, engineMessage_fields, &message);
+  if (!status)
+  {
+      Serial.println("Failed to encode");
+      return;
+  }
+  client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
+
 }

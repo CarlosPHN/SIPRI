@@ -6,7 +6,13 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(DhtMessage, DhtMessage, AUTO)
+PB_BIND(dhtMessage, dhtMessage, AUTO)
+
+
+PB_BIND(engineMessage, engineMessage, AUTO)
+
+
+PB_BIND(lightMessage, lightMessage, AUTO)
 
 
 

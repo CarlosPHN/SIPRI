@@ -14,44 +14,72 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct _DhtMessage {
+typedef struct _dhtMessage {
     bool has_temperature;
     float temperature;
     bool has_humidity;
     float humidity;
-    bool has_estadoServo;
-    float estadoServo;
-    bool has_estadoTapa;
-    float estadoTapa;
-} DhtMessage;
+} dhtMessage;
+
+typedef struct _engineMessage {
+    bool has_engine;
+    int32_t engine;
+    bool has_cover;
+    int32_t cover;
+} engineMessage;
+
+typedef struct _lightMessage {
+    bool has_light;
+    int32_t light;
+} lightMessage;
 
 
 /* Initializer values for message structs */
-#define DhtMessage_init_default                  {false, 0, false, 0, false, 0, false, 0}
-#define DhtMessage_init_zero                     {false, 0, false, 0, false, 0, false, 0}
+#define dhtMessage_init_default                  {false, 0, false, 0}
+#define engineMessage_init_default               {false, 0, false, 0}
+#define lightMessage_init_default                {false, 0}
+#define dhtMessage_init_zero                     {false, 0, false, 0}
+#define engineMessage_init_zero                  {false, 0, false, 0}
+#define lightMessage_init_zero                   {false, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define DhtMessage_temperature_tag               1
-#define DhtMessage_humidity_tag                  2
-#define DhtMessage_estadoServo_tag               3
-#define DhtMessage_estadoTapa_tag                4
+#define dhtMessage_temperature_tag               1
+#define dhtMessage_humidity_tag                  2
+#define engineMessage_engine_tag                 1
+#define engineMessage_cover_tag                  2
+#define lightMessage_light_tag                   1
 
 /* Struct field encoding specification for nanopb */
-#define DhtMessage_FIELDLIST(X, a) \
+#define dhtMessage_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, FLOAT,    temperature,       1) \
-X(a, STATIC,   OPTIONAL, FLOAT,    humidity,          2) \
-X(a, STATIC,   OPTIONAL, FLOAT,    estadoServo,       3) \
-X(a, STATIC,   OPTIONAL, FLOAT,    estadoTapa,        4)
-#define DhtMessage_CALLBACK NULL
-#define DhtMessage_DEFAULT NULL
+X(a, STATIC,   OPTIONAL, FLOAT,    humidity,          2)
+#define dhtMessage_CALLBACK NULL
+#define dhtMessage_DEFAULT NULL
 
-extern const pb_msgdesc_t DhtMessage_msg;
+#define engineMessage_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, INT32,    engine,            1) \
+X(a, STATIC,   OPTIONAL, INT32,    cover,             2)
+#define engineMessage_CALLBACK NULL
+#define engineMessage_DEFAULT NULL
+
+#define lightMessage_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, INT32,    light,             1)
+#define lightMessage_CALLBACK NULL
+#define lightMessage_DEFAULT NULL
+
+extern const pb_msgdesc_t dhtMessage_msg;
+extern const pb_msgdesc_t engineMessage_msg;
+extern const pb_msgdesc_t lightMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define DhtMessage_fields &DhtMessage_msg
+#define dhtMessage_fields &dhtMessage_msg
+#define engineMessage_fields &engineMessage_msg
+#define lightMessage_fields &lightMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define DhtMessage_size                          20
+#define dhtMessage_size                          10
+#define engineMessage_size                       22
+#define lightMessage_size                        11
 
 #ifdef __cplusplus
 } /* extern "C" */
