@@ -14,8 +14,8 @@ const char *ssid = "SSID";
 const char *password = "PASSWORD";
 
 #define DHT_TOPIC "sipri/dht"
-#define ENGINE_TOPIC "sipri/dht"
-#define LIGHT_TOPIC "sipri/dht"
+#define ENGINE_TOPIC "sipri/engine"
+#define LIGHT_TOPIC "sipri/light"
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
 
@@ -119,16 +119,15 @@ void loop()
   uint8_t buffer[200];
   engineMessage message = engineMessage_init_zero;
   pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-  message.engine = 0;
+  message.engine = 1;
   message.has_engine = true;
-  message.cover = 1;
+  message.cover = 0;
   message.has_cover = true;
   bool status = pb_encode(&stream, engineMessage_fields, &message);
   if (!status)
   {
-      Serial.println("Failed to encode");
-      return;
+    Serial.println("Failed to encode");
+    return;
   }
   client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
-
 }
