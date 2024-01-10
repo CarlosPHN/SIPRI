@@ -4,14 +4,16 @@
 #include <HTTPClient.h>
 #include <PubSubClient.h>
 #include <DHT.h>
+#include <driver/adc.h>
 #include "SIPRI.pb.h"
 
 #include "pb_common.h"
 #include "pb.h"
 #include "pb_encode.h"
+#include "servoMotor.cpp"
 
-const char *ssid = "SSID";
-const char *password = "PASSWORD";
+const char *ssid = "DIGIFIBRA-zbYR";
+const char *password = "Hk9GzXCdDUeb";
 
 #define DHT_TOPIC "sipri/dht"
 #define ENGINE_TOPIC "sipri/engine"
@@ -19,15 +21,24 @@ const char *password = "PASSWORD";
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
 
-#define DHT11_READ_PRIORITY 1
-#define DHT11_READ_DELAY 20000
+#define UMBRAL_LUZ_ON 2000
+#define LIGHT_PIN A1
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 DHT dht(D4, DHT11);
+ServoMotor myServo;
 
 TaskHandle_t xTaskDHT11;
+TaskHandle_t xTaskEngine;
+
+volatile bool systemOn = true;
+volatile int intensidadLuz;
+int estadoServo = 0;
+int estadoTapa = 0;
+float currentTemperature;
+float currentHumidity;
 
 void wifiConnect()
 {
@@ -62,14 +73,56 @@ void mqttConnect()
   }
 }
 
-void sendDHT11(float currentTemperature, float currrentHumidity)
+void activarServo(float humidity){
+
+  estadoServo =1;
+  estadoTapa = (humidity >= 65.0) ? 1 : 0;
+
+  myServo.start();
+  delay(1000);
+  myServo.subir();
+  delay(5000);
+}
+
+void desactivarServo(float humidity){
+
+  estadoServo = 0;
+  estadoTapa = (humidity < 73.5) ? 0 : 1;
+
+  myServo.start();
+  delay(1000);
+  myServo.bajar();
+  delay(1000);
+  myServo.stop();
+  delay(1000);
+}
+
+void sendEngine()
+{
+  uint8_t buffer[200];
+  engineMessage message = engineMessage_init_zero;
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  message.engine = estadoServo;
+  message.has_engine = true;
+  message.cover = estadoTapa;
+  message.has_cover = true;
+  bool status = pb_encode(&stream, engineMessage_fields, &message);
+  if (!status)
+  {
+    Serial.println("Failed to encode");
+    return;
+  }
+  client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
+}
+
+void sendDHT11()
 {
   uint8_t buffer[200];
   dhtMessage message = dhtMessage_init_zero;
   pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
   message.temperature = currentTemperature;
   message.has_temperature = true;
-  message.humidity = currrentHumidity;
+  message.humidity = currentHumidity;
   message.has_humidity = true;
   bool status = pb_encode(&stream, dhtMessage_fields, &message);
   if (!status)
@@ -80,6 +133,24 @@ void sendDHT11(float currentTemperature, float currrentHumidity)
   client.publish(DHT_TOPIC, buffer, stream.bytes_written);
 }
 
+void vTaskPeriodicEngine(void *pvParam)
+{
+  const char *msg = "vTaskPeriodicEngine is running\r\n";
+  portTickType xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();
+  for (;;)
+  {
+    if (currentTemperature <= 23.0){
+      activarServo(currentHumidity);
+    }else{
+      desactivarServo(currentHumidity);
+  }
+    sendEngine();
+    vTaskDelayUntil(&xLastWakeTime, (20000 / portTICK_RATE_MS));
+  }
+  vTaskDelete(NULL);
+}
+
 void vTaskPeriodicDHT11(void *pvParam)
 {
   const char *msg = "vTaskPeriodicTemperature is running\r\n";
@@ -87,11 +158,11 @@ void vTaskPeriodicDHT11(void *pvParam)
   xLastWakeTime = xTaskGetTickCount();
   for (;;)
   {
-    float currentTemperature = dht.readTemperature();
-    float currentHumidity = dht.readHumidity();
+    currentTemperature = dht.readTemperature();
+    currentHumidity = dht.readHumidity();
     Serial.printf("{\"Temperature\": %f, \"Humidity\": %f}\n", currentTemperature, currentHumidity);
-    sendDHT11(currentTemperature, currentHumidity);
-    vTaskDelayUntil(&xLastWakeTime, (DHT11_READ_DELAY / portTICK_RATE_MS));
+    sendDHT11();
+    vTaskDelayUntil(&xLastWakeTime, (20000 / portTICK_RATE_MS));
   }
   vTaskDelete(NULL);
 }
@@ -100,7 +171,8 @@ void app(void)
 {
   if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
     Serial.println("Scheduler is running");
-  xTaskCreate(vTaskPeriodicDHT11, "vTaskPeriodicLight", 4096, NULL, DHT11_READ_PRIORITY, &xTaskDHT11);
+  xTaskCreate(vTaskPeriodicEngine, "vTaskPeriodicEngine", 4096, NULL, 2, &xTaskEngine);
+  xTaskCreate(vTaskPeriodicDHT11, "vTaskPeriodicDHT", 4096, NULL, 3, &xTaskDHT11);
 }
 
 void setup()
@@ -113,21 +185,4 @@ void setup()
   app();
 }
 
-void loop()
-{
-  delay(3000);
-  uint8_t buffer[200];
-  engineMessage message = engineMessage_init_zero;
-  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-  message.engine = 1;
-  message.has_engine = true;
-  message.cover = 0;
-  message.has_cover = true;
-  bool status = pb_encode(&stream, engineMessage_fields, &message);
-  if (!status)
-  {
-    Serial.println("Failed to encode");
-    return;
-  }
-  client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
-}
+void loop() {}
