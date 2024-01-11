@@ -22,6 +22,7 @@ public:
 
   void start() {
     mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
+    
     this->setEncendido(true);
   }
 

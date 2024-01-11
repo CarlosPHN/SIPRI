@@ -12,8 +12,12 @@
 #include "pb_encode.h"
 #include "servoMotor.cpp"
 
-const char *ssid = "DIGIFIBRA-zbYR";
-const char *password = "Hk9GzXCdDUeb";
+
+//mio
+#include "servoClass.cpp"
+
+const char *ssid = "pruebasWifi";
+const char *password = "holacaracola";
 
 #define DHT_TOPIC "sipri/dht"
 #define ENGINE_TOPIC "sipri/engine"
@@ -22,8 +26,8 @@ const char *password = "Hk9GzXCdDUeb";
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
 
-#define DHT_DELAY 20000
-#define ENGINE_DELAY 10000
+#define ENGINE_DELAY 10000 //poner luego a mas para la defensa!
+#define DHT_DELAY 5000
 
 #define UMBRAL_LUZ_ON 2000
 #define LIGHT_PIN A1
@@ -84,44 +88,6 @@ void mqttConnect()
   }
 }
 
-void subirTapa(float humidity)
-{
-  estadoServo = 0;
-  if (estadoTapa == 0)
-  {
-    sendEngine();
-    estadoServo = 1;
-    myServo.start();
-    sendEngine();
-    delay(1000);
-    myServo.subir();
-    delay(5000);
-    myServo.stop();
-    estadoTapa = 1;
-    sendEngine();
-    delay(1000);
-  }
-}
-
-void bajarTapa(float humidity)
-{
-  estadoServo = 0;
-  if (estadoTapa == 1)
-  {
-    sendEngine();
-    estadoServo = 1;
-    myServo.start();
-    sendEngine();
-    delay(1000);
-    myServo.bajar();
-    delay(1000);
-    myServo.stop();
-    estadoTapa = 0;
-    sendEngine();
-    delay(1000);
-  }
-}
-
 void sendEngine()
 {
   uint8_t buffer[200];
@@ -139,6 +105,47 @@ void sendEngine()
   }
   client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
 }
+
+void subirTapa(float humidity)
+{
+  estadoServo = 0;
+  if (estadoTapa == 0)
+  {
+    sendEngine();
+    delay(1000);
+    estadoServo = 1;
+    myServo.start();
+    sendEngine();
+    delay(1000);
+    myServo.subir();
+    delay(5000); //subiendo, no quitar!!
+    myServo.stop();
+    estadoServo = 0;
+    estadoTapa = 1;
+    sendEngine();
+  }
+}
+
+void bajarTapa(float humidity)
+{
+  estadoServo = 0;
+  if (estadoTapa == 1)
+  {
+    sendEngine();
+    delay(1000);
+    estadoServo = 1;
+    myServo.start();
+    sendEngine();
+    delay(1000);
+    myServo.bajar();
+    delay(5000); //bajando, no quitar!!
+    myServo.stop();
+    estadoServo = 0;
+    estadoTapa = 0;
+    sendEngine();
+  }
+}
+
 
 void sendDHT11()
 {
@@ -165,7 +172,7 @@ void vTaskPeriodicEngine(void *pvParam)
   xLastWakeTime = xTaskGetTickCount();
   for (;;)
   {
-    if (currentHumidity <= 23.0)
+    if (currentHumidity >= 70.0)
     {
       subirTapa(currentHumidity);
     }
@@ -173,7 +180,7 @@ void vTaskPeriodicEngine(void *pvParam)
     {
       bajarTapa(currentHumidity);
     }
-    vTaskDelayUntil(&xLastWakeTime, (20000 / portTICK_RATE_MS));
+    vTaskDelayUntil(&xLastWakeTime, (ENGINE_DELAY / portTICK_RATE_MS));
   }
   vTaskDelete(NULL);
 }
