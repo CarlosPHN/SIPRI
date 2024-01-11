@@ -18,8 +18,12 @@ const char *password = "Hk9GzXCdDUeb";
 #define DHT_TOPIC "sipri/dht"
 #define ENGINE_TOPIC "sipri/engine"
 #define LIGHT_TOPIC "sipri/light"
+
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
+
+#define DHT_DELAY 20000
+#define ENGINE_DELAY 10000
 
 #define UMBRAL_LUZ_ON 2000
 #define LIGHT_PIN A1
@@ -39,6 +43,13 @@ int estadoServo = 0;
 int estadoTapa = 0;
 float currentTemperature;
 float currentHumidity;
+
+enum SystemState
+{
+  OFF,
+  BOILER_ON,
+  BOILER_OFF
+};
 
 void wifiConnect()
 {
@@ -73,28 +84,42 @@ void mqttConnect()
   }
 }
 
-void activarServo(float humidity){
-
-  estadoServo =1;
-  estadoTapa = (humidity >= 65.0) ? 1 : 0;
-
-  myServo.start();
-  delay(1000);
-  myServo.subir();
-  delay(5000);
+void subirTapa(float humidity)
+{
+  estadoServo = 0;
+  if (estadoTapa == 0)
+  {
+    sendEngine();
+    estadoServo = 1;
+    myServo.start();
+    sendEngine();
+    delay(1000);
+    myServo.subir();
+    delay(5000);
+    myServo.stop();
+    estadoTapa = 1;
+    sendEngine();
+    delay(1000);
+  }
 }
 
-void desactivarServo(float humidity){
-
+void bajarTapa(float humidity)
+{
   estadoServo = 0;
-  estadoTapa = (humidity < 73.5) ? 0 : 1;
-
-  myServo.start();
-  delay(1000);
-  myServo.bajar();
-  delay(1000);
-  myServo.stop();
-  delay(1000);
+  if (estadoTapa == 1)
+  {
+    sendEngine();
+    estadoServo = 1;
+    myServo.start();
+    sendEngine();
+    delay(1000);
+    myServo.bajar();
+    delay(1000);
+    myServo.stop();
+    estadoTapa = 0;
+    sendEngine();
+    delay(1000);
+  }
 }
 
 void sendEngine()
@@ -140,12 +165,14 @@ void vTaskPeriodicEngine(void *pvParam)
   xLastWakeTime = xTaskGetTickCount();
   for (;;)
   {
-    if (currentTemperature <= 23.0){
-      activarServo(currentHumidity);
-    }else{
-      desactivarServo(currentHumidity);
-  }
-    sendEngine();
+    if (currentHumidity <= 23.0)
+    {
+      subirTapa(currentHumidity);
+    }
+    else
+    {
+      bajarTapa(currentHumidity);
+    }
     vTaskDelayUntil(&xLastWakeTime, (20000 / portTICK_RATE_MS));
   }
   vTaskDelete(NULL);
@@ -162,7 +189,7 @@ void vTaskPeriodicDHT11(void *pvParam)
     currentHumidity = dht.readHumidity();
     Serial.printf("{\"Temperature\": %f, \"Humidity\": %f}\n", currentTemperature, currentHumidity);
     sendDHT11();
-    vTaskDelayUntil(&xLastWakeTime, (20000 / portTICK_RATE_MS));
+    vTaskDelayUntil(&xLastWakeTime, (DHT_DELAY / portTICK_RATE_MS));
   }
   vTaskDelete(NULL);
 }
