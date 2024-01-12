@@ -28,6 +28,8 @@ const char *password = "pk82hyqprubz72";
 #define UMBRAL_LUZ_ON 2000
 #define LIGHT_PIN A1
 
+#define light A1
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -44,12 +46,7 @@ int estadoTapa = 0;
 float currentTemperature;
 float currentHumidity;
 
-enum SystemState
-{
-  OFF,
-  BOILER_ON,
-  BOILER_OFF
-};
+ServoMotor miServo;
 
 void wifiConnect()
 {
@@ -110,12 +107,10 @@ void subirTapa(float humidity)
     sendEngine();
     delay(1000);
     estadoServo = 1;
-    myServo.start();
     sendEngine();
     delay(1000);
     myServo.subir();
     delay(5000); //subiendo, no quitar!!
-    myServo.stop();
     estadoServo = 0;
     estadoTapa = 1;
     sendEngine();
@@ -130,12 +125,10 @@ void bajarTapa(float humidity)
     sendEngine();
     delay(1000);
     estadoServo = 1;
-    myServo.start();
     sendEngine();
     delay(1000);
-    myServo.bajar();
+    miServo.bajar();
     delay(5000); //bajando, no quitar!!
-    myServo.stop();
     estadoServo = 0;
     estadoTapa = 0;
     sendEngine();
@@ -208,11 +201,17 @@ void app(void)
 void setup()
 {
   Serial.begin(115200);
+  pinMode(light, INPUT);
   dht.begin();
+  miServo.setup();
   delay(4000);
   wifiConnect();
   mqttConnect();
   app();
+
 }
 
-void loop() {}
+
+void loop() {
+
+}
