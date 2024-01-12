@@ -12,12 +12,8 @@
 #include "pb_encode.h"
 #include "servoMotor.cpp"
 
-
-//mio
-#include "servoClass.cpp"
-
-const char *ssid = "pruebasWifi";
-const char *password = "holacaracola";
+const char *ssid = "HUAWEI P smart 2019";
+const char *password = "pk82hyqprubz72";
 
 #define DHT_TOPIC "sipri/dht"
 #define ENGINE_TOPIC "sipri/engine"
