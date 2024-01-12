@@ -22,8 +22,8 @@ const char *password = "pk82hyqprubz72";
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
 
-#define ENGINE_DELAY 10000 //poner luego a mas para la defensa!
-#define DHT_DELAY 5000
+#define ENGINE_DELAY 20000
+#define DHT_DELAY 10000
 
 #define UMBRAL_LUZ_ON 2000
 #define LIGHT_PIN A1
@@ -101,16 +101,11 @@ void sendEngine()
 
 void subirTapa(float humidity)
 {
-  estadoServo = 0;
   if (estadoTapa == 0)
   {
-    sendEngine();
-    delay(1000);
     estadoServo = 1;
     sendEngine();
-    delay(1000);
     myServo.subir();
-    delay(5000); //subiendo, no quitar!!
     estadoServo = 0;
     estadoTapa = 1;
     sendEngine();
@@ -119,16 +114,11 @@ void subirTapa(float humidity)
 
 void bajarTapa(float humidity)
 {
-  estadoServo = 0;
   if (estadoTapa == 1)
   {
-    sendEngine();
-    delay(1000);
     estadoServo = 1;
     sendEngine();
-    delay(1000);
     miServo.bajar();
-    delay(5000); //bajando, no quitar!!
     estadoServo = 0;
     estadoTapa = 0;
     sendEngine();
