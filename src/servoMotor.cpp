@@ -17,21 +17,21 @@ public:
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
   }
 
-  void subir()
+  void up()
   {
     for (float duty_cycle = 2.5; duty_cycle <= 12.5; duty_cycle += 0.1)
     {
       mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
-      delay(50);
+      delay(100);
     }
   }
 
-  void bajar()
+  void down()
   {
     for (float duty_cycle = 12.5; duty_cycle >= 2.5; duty_cycle -= 0.1)
     {
       mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
-      delay(50);
+      delay(100);
     }
   }
 };

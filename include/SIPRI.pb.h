@@ -33,13 +33,20 @@ typedef struct _lightMessage {
     int32_t light;
 } lightMessage;
 
+typedef struct _rotationMessage {
+    bool has_desiredTemperature;
+    int32_t desiredTemperature;
+} rotationMessage;
+
 
 /* Initializer values for message structs */
 #define dhtMessage_init_default                  {false, 0, false, 0}
 #define engineMessage_init_default               {false, 0, false, 0}
+#define rotationMessage_init_default             {false, 0}
 #define lightMessage_init_default                {false, 0}
 #define dhtMessage_init_zero                     {false, 0, false, 0}
 #define engineMessage_init_zero                  {false, 0, false, 0}
+#define rotationMessage_init_zero                {false, 0}
 #define lightMessage_init_zero                   {false, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
@@ -48,6 +55,7 @@ typedef struct _lightMessage {
 #define engineMessage_engine_tag                 1
 #define engineMessage_cover_tag                  2
 #define lightMessage_light_tag                   1
+#define rotationMessage_desiredTemperature_tag   1
 
 /* Struct field encoding specification for nanopb */
 #define dhtMessage_FIELDLIST(X, a) \
@@ -62,6 +70,11 @@ X(a, STATIC,   OPTIONAL, INT32,    cover,             2)
 #define engineMessage_CALLBACK NULL
 #define engineMessage_DEFAULT NULL
 
+#define rotationMessage_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, INT32,    desiredTemperature,   1)
+#define rotationMessage_CALLBACK NULL
+#define rotationMessage_DEFAULT NULL
+
 #define lightMessage_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, INT32,    light,             1)
 #define lightMessage_CALLBACK NULL
@@ -69,16 +82,19 @@ X(a, STATIC,   OPTIONAL, INT32,    light,             1)
 
 extern const pb_msgdesc_t dhtMessage_msg;
 extern const pb_msgdesc_t engineMessage_msg;
+extern const pb_msgdesc_t rotationMessage_msg;
 extern const pb_msgdesc_t lightMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define dhtMessage_fields &dhtMessage_msg
 #define engineMessage_fields &engineMessage_msg
+#define rotationMessage_fields &rotationMessage_msg
 #define lightMessage_fields &lightMessage_msg
 
 /* Maximum encoded size of messages (where known) */
 #define dhtMessage_size                          10
 #define engineMessage_size                       22
+#define rotationMessage_size                     11
 #define lightMessage_size                        11
 
 #ifdef __cplusplus

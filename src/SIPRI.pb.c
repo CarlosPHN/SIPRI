@@ -12,6 +12,9 @@ PB_BIND(dhtMessage, dhtMessage, AUTO)
 PB_BIND(engineMessage, engineMessage, AUTO)
 
 
+PB_BIND(rotationMessage, rotationMessage, AUTO)
+
+
 PB_BIND(lightMessage, lightMessage, AUTO)
 
 

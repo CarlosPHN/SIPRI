@@ -1,5 +1,3 @@
-syntax = "proto2";
-
 message dhtMessage {
   optional float temperature = 1;
   optional float humidity = 2;
@@ -8,6 +6,10 @@ message dhtMessage {
 message engineMessage {
   optional int32 engine = 1;
   optional int32 cover = 2;
+}
+
+message rotationMessage {
+  optional int32 desiredTemperature = 1;
 }
 
 message lightMessage {

@@ -12,23 +12,42 @@
 #include "pb_encode.h"
 #include "servoMotor.cpp"
 
-const char *ssid = "HUAWEI P smart 2019";
-const char *password = "pk82hyqprubz72";
-
 #define DHT_TOPIC "sipri/dht"
 #define ENGINE_TOPIC "sipri/engine"
+#define ROTATION_TOPIC "sipri/rotation"
 #define LIGHT_TOPIC "sipri/light"
 
 #define BROKER_IP "ciberfisicos.ddns.net"
 #define BROKER_PORT 2883
 
-#define ENGINE_DELAY 20000
+#define DHT_PRIORITY 2
+#define ENGINE_PRIORITY 1
+#define ROTATION_PRIORITY 3
+#define LIGHT_PRIORITY 4
+
 #define DHT_DELAY 10000
+#define ENGINE_DELAY 15000
+#define ROTATION_DELAY 30000
+#define LIGHT_DELAY 20000
 
-#define UMBRAL_LUZ_ON 2000
-#define LIGHT_PIN A1
+#define redLed D9
+#define greenLed D10
+#define blueLed D11
 
-#define light A1
+#define HIGH_TEMPERATURE D12
+#define LOW_TEMPERATURE D13
+
+#define DHT_HUMIDITY_TRESHOLD 70
+#define LIGHT_THRESHOLD 500
+
+#define ROTATION A0
+#define LIGHT A1
+
+#define MIN_TEMPERATURE_VALUE 0
+#define MAX_TEMPERATURE_VALUE 60
+
+const char *ssid = "HUAWEI P smart 2019";
+const char *password = "pk82hyqprubz72";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -38,15 +57,28 @@ ServoMotor myServo;
 
 TaskHandle_t xTaskDHT11;
 TaskHandle_t xTaskEngine;
+TaskHandle_t xTaskRotation;
+TaskHandle_t xTaskLight;
 
-volatile bool systemOn = true;
-volatile int intensidadLuz;
-int estadoServo = 0;
-int estadoTapa = 0;
+QueueHandle_t wifiSemaphore;
+SemaphoreHandle_t writeTemperatureSemaphore;
+
+// DTH11
 float currentTemperature;
 float currentHumidity;
 
-ServoMotor miServo;
+// ENGINE
+int currentServoStatus = 0; // 0 = down, 1 = up
+int currentCoverStatus = 0; // 0 = down, 1 = up
+
+// ROTATION
+int currentThresholdTemperature;
+
+// LIGHT
+int currentLight;
+
+// SERVO
+ServoMotor servoMotor;
 
 void wifiConnect()
 {
@@ -81,50 +113,48 @@ void mqttConnect()
   }
 }
 
-void sendEngine()
+void wifiReset()
 {
-  uint8_t buffer[200];
-  engineMessage message = engineMessage_init_zero;
-  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-  message.engine = estadoServo;
-  message.has_engine = true;
-  message.cover = estadoTapa;
-  message.has_cover = true;
-  bool status = pb_encode(&stream, engineMessage_fields, &message);
-  if (!status)
-  {
-    Serial.println("Failed to encode");
-    return;
-  }
-  client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
+  wifiConnect();
+  mqttConnect();
 }
 
-void subirTapa(float humidity)
+void controlRGBLeds(int red, int green, int blue)
 {
-  if (estadoTapa == 0)
-  {
-    estadoServo = 1;
-    sendEngine();
-    myServo.subir();
-    estadoServo = 0;
-    estadoTapa = 1;
-    sendEngine();
-  }
+  digitalWrite(redLed, red);
+  digitalWrite(greenLed, green);
+  digitalWrite(blueLed, blue);
 }
 
-void bajarTapa(float humidity)
+void writeTemperature()
 {
-  if (estadoTapa == 1)
+  if (xSemaphoreTake(writeTemperatureSemaphore, portMAX_DELAY) == pdTRUE)
   {
-    estadoServo = 1;
-    sendEngine();
-    miServo.bajar();
-    estadoServo = 0;
-    estadoTapa = 0;
-    sendEngine();
+    if (currentTemperature < currentThresholdTemperature)
+    {
+      if (!digitalRead(LOW_TEMPERATURE))
+      {
+        digitalWrite(LOW_TEMPERATURE, HIGH);
+      }
+      if (digitalRead(HIGH_TEMPERATURE))
+      {
+        digitalWrite(HIGH_TEMPERATURE, LOW);
+      }
+    }
+    else
+    {
+      if (!digitalRead(HIGH_TEMPERATURE))
+      {
+        digitalWrite(HIGH_TEMPERATURE, HIGH);
+      }
+      if (digitalRead(LOW_TEMPERATURE))
+      {
+        digitalWrite(LOW_TEMPERATURE, LOW);
+      }
+    }
+    xSemaphoreGive(writeTemperatureSemaphore);
   }
 }
-
 
 void sendDHT11()
 {
@@ -141,27 +171,11 @@ void sendDHT11()
     Serial.println("Failed to encode");
     return;
   }
-  client.publish(DHT_TOPIC, buffer, stream.bytes_written);
-}
-
-void vTaskPeriodicEngine(void *pvParam)
-{
-  const char *msg = "vTaskPeriodicEngine is running\r\n";
-  portTickType xLastWakeTime;
-  xLastWakeTime = xTaskGetTickCount();
-  for (;;)
+  if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
   {
-    if (currentHumidity >= 70.0)
-    {
-      subirTapa(currentHumidity);
-    }
-    else
-    {
-      bajarTapa(currentHumidity);
-    }
-    vTaskDelayUntil(&xLastWakeTime, (ENGINE_DELAY / portTICK_RATE_MS));
+    client.publish(DHT_TOPIC, buffer, stream.bytes_written);
+    xSemaphoreGive(wifiSemaphore);
   }
-  vTaskDelete(NULL);
 }
 
 void vTaskPeriodicDHT11(void *pvParam)
@@ -171,37 +185,226 @@ void vTaskPeriodicDHT11(void *pvParam)
   xLastWakeTime = xTaskGetTickCount();
   for (;;)
   {
+    printf(msg);
     currentTemperature = dht.readTemperature();
     currentHumidity = dht.readHumidity();
     Serial.printf("{\"Temperature\": %f, \"Humidity\": %f}\n", currentTemperature, currentHumidity);
+    writeTemperature();
     sendDHT11();
     vTaskDelayUntil(&xLastWakeTime, (DHT_DELAY / portTICK_RATE_MS));
   }
   vTaskDelete(NULL);
 }
 
+void sendEngine()
+{
+  uint8_t buffer[200];
+  engineMessage message = engineMessage_init_zero;
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  message.engine = currentServoStatus;
+  message.has_engine = true;
+  message.cover = currentCoverStatus;
+  message.has_cover = true;
+  bool status = pb_encode(&stream, engineMessage_fields, &message);
+  if (!status)
+  {
+    Serial.println("Failed to encode");
+    return;
+  }
+  if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
+  {
+    client.publish(ENGINE_TOPIC, buffer, stream.bytes_written);
+    xSemaphoreGive(wifiSemaphore);
+  }
+}
+
+void liftCover()
+{
+  if (currentCoverStatus == 0)
+  {
+    // Servo ON
+    currentServoStatus = 1;
+    sendEngine();
+    servoMotor.up();
+    // Servo OFF and Cover UP
+    currentServoStatus = 0;
+    currentCoverStatus = 1;
+    sendEngine();
+  }
+}
+
+void lowerCover()
+{
+  if (currentCoverStatus == 1)
+  {
+    // Servo ON
+    currentServoStatus = 1;
+    sendEngine();
+    servoMotor.down();
+    // Servo OFF and Cover DOWN
+    currentServoStatus = 0;
+    currentCoverStatus = 0;
+    sendEngine();
+  }
+}
+
+void vTaskPeriodicEngine(void *pvParam)
+{
+  const char *msg = "vTaskPeriodicEngine is running\r\n";
+  portTickType xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();
+  for (;;)
+  {
+    printf(msg);
+    if (currentHumidity >= DHT_HUMIDITY_TRESHOLD)
+    {
+      liftCover();
+    }
+    else
+    {
+      lowerCover();
+    }
+    vTaskDelayUntil(&xLastWakeTime, (ENGINE_DELAY / portTICK_RATE_MS));
+  }
+  vTaskDelete(NULL);
+}
+
+void sendRotation()
+{
+  uint8_t buffer[200];
+  rotationMessage message = rotationMessage_init_zero;
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  message.desiredTemperature = currentThresholdTemperature;
+  message.has_desiredTemperature = true;
+  bool status = pb_encode(&stream, rotationMessage_fields, &message);
+  if (!status)
+  {
+    Serial.println("Failed to encode");
+    return;
+  }
+  if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
+  {
+    client.publish(ROTATION_TOPIC, buffer, stream.bytes_written);
+    xSemaphoreGive(wifiSemaphore);
+  }
+}
+
+void vTaskPeriodicRotation(void *pvParam)
+{
+  const char *msg = "vTaskPeriodicRotation is running\r\n";
+  portTickType xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();
+  for (;;)
+  {
+    printf(msg);
+    if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
+    {
+      client.disconnect();
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_OFF);
+      currentThresholdTemperature = map(analogRead(ROTATION), 0, 1023, MIN_TEMPERATURE_VALUE, MAX_TEMPERATURE_VALUE);
+      wifiConnect();
+      mqttConnect();
+      xSemaphoreGive(wifiSemaphore);
+    }
+    Serial.printf("{\"Rotation\": %d}\n", currentThresholdTemperature);
+    writeTemperature();
+    sendRotation();
+    vTaskDelayUntil(&xLastWakeTime, (ROTATION_DELAY / portTICK_RATE_MS));
+  }
+  vTaskDelete(NULL);
+}
+
+void controLight()
+{
+  if (currentLight < LIGHT_THRESHOLD)
+  {
+    controlRGBLeds(255, 255, 255);
+  }
+  else
+  {
+    controlRGBLeds(0, 0, 0);
+  }
+}
+
+void sendLight()
+{
+  uint8_t buffer[200];
+  lightMessage message = lightMessage_init_zero;
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  message.light = currentLight;
+  message.has_light = true;
+  bool status = pb_encode(&stream, lightMessage_fields, &message);
+  if (!status)
+  {
+    Serial.println("Failed to encode");
+    return;
+  }
+  if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
+  {
+    client.publish(LIGHT_TOPIC, buffer, stream.bytes_written);
+    xSemaphoreGive(wifiSemaphore);
+  }
+}
+
+void vTaskPeriodicLight(void *pvParam)
+{
+  const char *msg = "vTaskPeriodicLight is running\r\n";
+  portTickType xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();
+  for (;;)
+  {
+    printf(msg);
+    if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
+    {
+      client.disconnect();
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_OFF);
+      currentLight = analogRead(LIGHT);
+      wifiConnect();
+      mqttConnect();
+      xSemaphoreGive(wifiSemaphore);
+    }
+    Serial.printf("{\"Light\": %d}\n", currentLight);
+    controLight();
+    sendLight();
+    vTaskDelayUntil(&xLastWakeTime, (LIGHT_DELAY / portTICK_RATE_MS));
+  }
+  vTaskDelete(NULL);
+}
+
 void app(void)
 {
+  wifiSemaphore = xSemaphoreCreateMutex();
+  writeTemperatureSemaphore = xSemaphoreCreateMutex();
   if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
     Serial.println("Scheduler is running");
-  xTaskCreate(vTaskPeriodicEngine, "vTaskPeriodicEngine", 4096, NULL, 2, &xTaskEngine);
-  xTaskCreate(vTaskPeriodicDHT11, "vTaskPeriodicDHT", 4096, NULL, 3, &xTaskDHT11);
+  xTaskCreate(vTaskPeriodicDHT11, "vTaskPeriodicDHT", 4096, NULL, DHT_PRIORITY, &xTaskDHT11);
+  xTaskCreate(vTaskPeriodicEngine, "vTaskPeriodicEngine", 4096, NULL, ENGINE_PRIORITY, &xTaskEngine);
+  xTaskCreate(vTaskPeriodicLight, "vTaskPeriodicLight", 4096, NULL, LIGHT_PRIORITY, &xTaskLight);
+  xTaskCreate(vTaskPeriodicRotation, "vTaskPeriodicRotation", 4096, NULL, ROTATION_PRIORITY, &xTaskRotation);
+
 }
 
 void setup()
 {
   Serial.begin(115200);
-  pinMode(light, INPUT);
+  pinMode(HIGH_TEMPERATURE, OUTPUT);
+  pinMode(LOW_TEMPERATURE, OUTPUT);
+  pinMode(redLed, OUTPUT);
+  pinMode(greenLed, OUTPUT);
+  pinMode(blueLed, OUTPUT);
+  pinMode(ROTATION, INPUT);
+  pinMode(LIGHT, INPUT);
+  analogReadResolution(10);
   dht.begin();
-  miServo.setup();
+  servoMotor.setup();
   delay(4000);
   wifiConnect();
   mqttConnect();
   app();
-
 }
 
-
-void loop() {
-
+void loop()
+{
 }
