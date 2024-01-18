@@ -16,7 +16,7 @@ Hay 3 casos de uso.
 
 ### Caso de Uso 1: Subida y bajada de la tapa de la alcantarilla
 
-Si la humedad es mayor o igual a un valor predefinido (en este caso, 70), se elevará la tapa si está bajada. Para lograr esto, se utilizará un servo que variará su duty_cycle lentamente de 2.5 a 12.5. En caso de que la humedad sea inferior al umbral, se bajará la tapa si está elevada, representándose con el servo con un duty_cycle que irá de 12.5 a 2.5.
+Si la humedad es mayor o igual a un valor predefinido (en este caso, 70), se elevará la tapa si está bajada. Para lograr esto, se utilizará un *servo* que variará su *duty_cycle* lentamente de 2.5 a 12.5. En caso de que la humedad sea inferior al umbral, se bajará la tapa si está elevada, representándose con el servo con un *duty_cycle* que irá de 12.5 a 2.5.
 
 #### Paneles
 
@@ -42,7 +42,7 @@ Se han creado 6 paneles en Grafana para monitorizar y analizar el sistema de con
 
 ### Caso de Uso 2: Congelamiento de la alcantarilla
 
-Se permite cambiar el umbral de temperatura (A0). Si la temperatura está por debajo del umbral, se enciende el LED D13 (azul); de lo contrario, se enciende el LED D12 (rojo).
+Se permite cambiar el umbral de temperatura (*A0*). Si la temperatura está por debajo del umbral, se enciende el *LED D13* (azul); de lo contrario, se enciende el *LED D12* (rojo).
 
 #### Paneles
 
@@ -59,7 +59,7 @@ Se han configurado 3 paneles en Grafana para facilitar la supervisión del siste
 
 ### Caso de Uso 3: Obstrucción de la alcantarilla
 
-Se utiliza el sensor de luz A1 para detectar poca luz (por debajo del umbral predefinido de 500). Se enciende el LED RGB en blanco para indicar obstrucción; de lo contrario, se apaga el LED.
+Se utiliza el sensor de luz *A1* para detectar poca luz (por debajo del umbral predefinido de 500). Se enciende el *LED RGB* en blanco para indicar obstrucción; de lo contrario, se apaga el *LED*.
 
 #### Paneles
 
