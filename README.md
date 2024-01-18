@@ -10,6 +10,26 @@ Se ha utilizado el Stack *TIG* (*Telegraf, InfluxDB y Grafana*) para la configur
 
 Para acceder al panel de Grafana, utiliza la siguiente URL: [http://ciberfisicos.ddns.net:3000](http://ciberfisicos.ddns.net:3000).
 
+## Instalación y setup
+
+Pasos para la instalación de dependencias y setup necesario
+
+### 1. Clonar el Repositorio
+
+~~~
+git clone https://github.com/CarlosPHN/SIPRI.git
+~~~
+
+### 2. Instalación de dependencias
+
+Las dependencias están especificadas en el código y se instalarán automáticamente cuando se abra el proyecto en PlatformIO. 
+
+### 3. Ejecución
+
+**Compilar** código: CTRL + ALT + B.
+
+**Ejecutar y cargar** código en el *target* especificado: CTRL + ALT + U.
+
 ## Casos de Uso
 
 Hay 3 casos de uso.
