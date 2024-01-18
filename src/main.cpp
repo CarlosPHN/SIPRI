@@ -113,10 +113,17 @@ void mqttConnect()
   }
 }
 
-void wifiReset()
+void connect()
 {
   wifiConnect();
   mqttConnect();
+}
+
+void disconnect()
+{
+  client.disconnect();
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
 }
 
 void controlRGBLeds(int red, int green, int blue)
@@ -299,12 +306,9 @@ void vTaskPeriodicRotation(void *pvParam)
     printf(msg);
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
     {
-      client.disconnect();
-      WiFi.disconnect(true);
-      WiFi.mode(WIFI_OFF);
+      disconnect();
       currentThresholdTemperature = map(analogRead(ROTATION), 0, 1023, MIN_TEMPERATURE_VALUE, MAX_TEMPERATURE_VALUE);
-      wifiConnect();
-      mqttConnect();
+      connect();
       xSemaphoreGive(wifiSemaphore);
     }
     Serial.printf("{\"Rotation\": %d}\n", currentThresholdTemperature);
@@ -357,12 +361,9 @@ void vTaskPeriodicLight(void *pvParam)
     printf(msg);
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) == pdTRUE)
     {
-      client.disconnect();
-      WiFi.disconnect(true);
-      WiFi.mode(WIFI_OFF);
+      disconnect();
       currentLight = analogRead(LIGHT);
-      wifiConnect();
-      mqttConnect();
+      connect();
       xSemaphoreGive(wifiSemaphore);
     }
     Serial.printf("{\"Light\": %d}\n", currentLight);
@@ -400,8 +401,7 @@ void setup()
   dht.begin();
   servoMotor.setup();
   delay(4000);
-  wifiConnect();
-  mqttConnect();
+  connect();
   app();
 }
 
