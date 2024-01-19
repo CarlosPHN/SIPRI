@@ -1427,9 +1427,19 @@
         {
           "colorMode": "custom",
           "fill": true,
-          "fillColor": "rgb(112, 110, 110)",
+          "fillColor": "rgba(105, 102, 102, 0.2)",
           "line": true,
-          "lineColor": "rgb(255, 255, 255)",
+          "lineColor": "rgb(0, 0, 0)",
+          "op": "gt",
+          "value": 500,
+          "yaxis": "left"
+        },
+        {
+          "colorMode": "custom",
+          "fill": true,
+          "fillColor": "rgb(87, 85, 76)",
+          "line": true,
+          "lineColor": "#FADE2A",
           "op": "lt",
           "value": 500,
           "yaxis": "left"
@@ -1437,11 +1447,11 @@
         {
           "colorMode": "custom",
           "fill": true,
-          "fillColor": "rgba(105, 102, 102, 0.2)",
+          "fillColor": "rgba(255, 255, 255, 0.2)",
           "line": true,
-          "lineColor": "rgb(0, 0, 0)",
-          "op": "gt",
-          "value": 500,
+          "lineColor": "rgba(255, 255, 255, 0.6)",
+          "op": "lt",
+          "value": 300,
           "yaxis": "left"
         }
       ],
@@ -1514,5 +1524,5 @@
   "timezone": "",
   "title": "SIPRI-V",
   "uid": "uvVFQ5FSk",
-  "version": 64
+  "version": 67
 }

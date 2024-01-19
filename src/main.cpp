@@ -27,7 +27,7 @@
 
 #define DHT_DELAY 10000
 #define ENGINE_DELAY 15000
-#define ROTATION_DELAY 30000
+#define ROTATION_DELAY 25000
 #define LIGHT_DELAY 20000
 
 #define redLed D9
@@ -45,6 +45,12 @@
 
 #define MIN_TEMPERATURE_VALUE 0
 #define MAX_TEMPERATURE_VALUE 60
+
+#define TIMER_ALARM_VALUE_SECONDS 360
+#define DEEP_MODE_TIME_SECONDS 60
+#define uS_TO_S_FACTOR 1000000
+
+hw_timer_t *timer = NULL;
 
 const char *ssid = "HUAWEI P smart 2019";
 const char *password = "pk82hyqprubz72";
@@ -124,6 +130,11 @@ void disconnect()
   client.disconnect();
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
+}
+
+void IRAM_ATTR Timer_handleInterrupt()
+{
+  esp_deep_sleep_start();
 }
 
 void controlRGBLeds(int red, int green, int blue)
@@ -233,6 +244,7 @@ void liftCover()
     currentServoStatus = 1;
     sendEngine();
     servoMotor.up();
+    delay(1000);
     // Servo OFF and Cover UP
     currentServoStatus = 0;
     currentCoverStatus = 1;
@@ -248,6 +260,7 @@ void lowerCover()
     currentServoStatus = 1;
     sendEngine();
     servoMotor.down();
+    delay(1000);
     // Servo OFF and Cover DOWN
     currentServoStatus = 0;
     currentCoverStatus = 0;
@@ -384,7 +397,6 @@ void app(void)
   xTaskCreate(vTaskPeriodicEngine, "vTaskPeriodicEngine", 4096, NULL, ENGINE_PRIORITY, &xTaskEngine);
   xTaskCreate(vTaskPeriodicLight, "vTaskPeriodicLight", 4096, NULL, LIGHT_PRIORITY, &xTaskLight);
   xTaskCreate(vTaskPeriodicRotation, "vTaskPeriodicRotation", 4096, NULL, ROTATION_PRIORITY, &xTaskRotation);
-
 }
 
 void setup()
@@ -402,6 +414,11 @@ void setup()
   servoMotor.setup();
   delay(4000);
   connect();
+  esp_sleep_enable_timer_wakeup(DEEP_MODE_TIME_SECONDS * uS_TO_S_FACTOR);
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &Timer_handleInterrupt, true);
+  timerAlarmWrite(timer, TIMER_ALARM_VALUE_SECONDS * uS_TO_S_FACTOR, true);
+  timerAlarmEnable(timer);
   app();
 }
 
