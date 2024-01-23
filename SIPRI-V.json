@@ -1271,6 +1271,11 @@
       "rangeMaps": [
         {
           "from": "0",
+          "text": "Con mucha obstrucción",
+          "to": "300"
+        },
+        {
+          "from": "300",
           "text": "Con obstrucción",
           "to": "500"
         },
@@ -1328,7 +1333,7 @@
           "tags": []
         }
       ],
-      "thresholds": "500,500",
+      "thresholds": "300,500",
       "timeFrom": null,
       "timeShift": null,
       "title": "Luz ACTUAL",
@@ -1496,7 +1501,7 @@
       }
     }
   ],
-  "refresh": "1s",
+  "refresh": "5s",
   "schemaVersion": 21,
   "style": "dark",
   "tags": [],
@@ -1504,7 +1509,7 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -1524,5 +1529,5 @@
   "timezone": "",
   "title": "SIPRI-V",
   "uid": "uvVFQ5FSk",
-  "version": 67
+  "version": 71
 }
