@@ -52,8 +52,8 @@
 
 hw_timer_t *timer = NULL;
 
-const char *ssid = "HUAWEI P smart 2019";
-const char *password = "pk82hyqprubz72";
+const char *ssid = "YourWifi";
+const char *password = "YourPassword";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
