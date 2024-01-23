@@ -24,7 +24,16 @@ git clone https://github.com/CarlosPHN/SIPRI.git
 
 Las dependencias están especificadas en el código y se instalarán automáticamente cuando se abra el proyecto en PlatformIO. 
 
-### 3. Ejecución
+### 3. Configuración WiFi
+
+Es necesario proporcionar el nombre de la red WiFi (SSID) y la contraseña correspondiente para que el dispositivo pueda conectarse a la red.
+
+~~~
+const char *ssid = "YourWiFi";
+const char *password = "YourPassword";
+~~~
+
+### 4. Ejecución
 
 **Compilar** código: CTRL + ALT + B.
 
