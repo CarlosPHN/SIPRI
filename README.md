@@ -60,6 +60,16 @@ Se han creado 6 paneles en Grafana para monitorizar y analizar el sistema de con
 6. **Histórico de Cambios en el Estado de la Tapa:**
    - Registra los cambios en el estado de la tapa a lo largo del tiempo.
 
+#### Acciones o comandos que se deben realizar para demostrar el caso de uso
+
+1. Aplicar presión al sensor DHT de humedad para aumentar el nivel hasta que supere el 70%.
+2. Verificar que el valor se refleje en el panel de Grafana (debería incrementarse, ya que inicialmente era inferior).
+3. Confirmar que, si la tapa estaba bajada y el motor apagado, el motor se encenderá para subir la tapa hasta que el motor se apague y la tapa esté completamente subida.
+4. Comprobar que al dejar de aplicar presión, la humedad disminuya.
+5. Asegurarse de que si la humedad es inferior al 70%, la tapa está levantada y el motor apagado, el motor se encienda para bajar la tapa hasta que el motor se apague y la tapa esté completamente bajada.
+
+Además, se pueden explorar diferentes escenarios al presionar el sensor DHT de humedad para observar diversas respuestas del sistema.
+
 ### Caso de Uso 2: Congelamiento de la alcantarilla
 
 Se permite cambiar el umbral de temperatura (*A0*). Si la temperatura está por debajo del umbral, se enciende el *LED D13* (azul); de lo contrario, se enciende el *LED D12* (rojo).
@@ -76,6 +86,14 @@ Se han configurado 3 paneles en Grafana para facilitar la supervisión del siste
 
 3. **Histórico de Valores de la Temperatura:**
    - Proporciona un historial de los valores de temperatura a lo largo del tiempo.
+  
+#### Acciones o comandos que se deben realizar para demostrar el caso de uso
+
+1. Ajustar el umbral de temperatura girando el potenciómetro para cambiar su valor.
+2. Confirmar que el nuevo valor se refleje en el panel de Grafana.
+3. Verificar que si la temperatura actual es mayor o igual al umbral establecido, el LED D12 se encienda; de lo contrario, se encenderá el LED D13.
+
+Se ha optado por cambiar el umbral de temperatura debido a su simplicidad, ya que la temperatura del entorno es invariable y no puede modificarse para demostrar el caso de uso.
 
 ### Caso de Uso 3: Obstrucción de la alcantarilla
 
@@ -93,3 +111,12 @@ Se han diseñado 3 paneles en Grafana para facilitar la supervisión del sistema
 
 3. **Histórico de Valores de Luz:**
    - Ofrece un historial detallado de los valores de luz a lo largo del tiempo.
+
+#### Acciones o comandos que se deben realizar para demostrar el caso de uso
+
+1. Cubrir el sensor de luz.
+2. Verificar que el valor se ajuste en el panel de Grafana (debería disminuir, dado que inicialmente había luz).
+3. Confirmar que el estado difiere del anterior, ya que ahora hay menos luz. Si el valor es <500, indica obstrucción; si es <300, denota obstrucción considerable.
+4. Asegurarse de que cuando el valor de luz sea menor que 300, el LED RGB emita luz blanca.
+
+Además, se pueden explorar diferentes escenarios al cubrir y descubrir el sensor para observar diversas respuestas del sistema.
